@@ -27,11 +27,11 @@ export class WebSocketService {
      * @param server The instance of express Server to attach socket.io on it
      * @param services This is a list of websocket service who will be listened
      */
-    start(container: IContainer, server: AbstractAdapter, services: Array<string>, tokenService?: TokenService) {
+    start(container: IContainer, server: AbstractAdapter, services: Array<string>) {
         this.container = container;
         this.io = new SocketIo(server);
 
-        this.tokenService = tokenService;
+        this.tokenService = this.container.get<TokenService>('TokenService');
         this.acceptUnauthorizedConnections = System.createServiceConfigurationProperty("WEBSOCKET_ACCEPT_UNAUTHORIZED_CONNECTIONS", true);
         this.timeToAuthorizeConnectionInMs = System.createServiceConfigurationProperty("WEBSOCKET_TIME_TO_AUTHORIZE_CONNECTIONS", 1);
         // this.container.injectFrom(pathWs);
