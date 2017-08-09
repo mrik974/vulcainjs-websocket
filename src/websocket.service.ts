@@ -1,7 +1,8 @@
-import { AbstractAdapter, IContainer } from 'vulcain-corejs';
+import {AbstractAdapter, IContainer, Inject} from 'vulcain-corejs';
 import { Injectable, LifeTime } from 'vulcain-corejs/dist';
 //
 import { WebSocketComponent } from "./websocket.component";
+import {TokenService} from "vulcain-corejs/dist/defaults/services/tokenService";
 
 const SocketIo = require('socket.io');
 
@@ -12,9 +13,13 @@ export class WebSocketService {
 
     private io: SocketIO.Server;
 
+    constructor(@Inject('TokenService') tokenService: TokenService) {
+        console.log(tokenService);
+    }
+
     /**
-     * 
-     * @param container 
+     *
+     * @param container
      * @param server The instance of express Server to attach socket.io on it
      * @param services This is a list of websocket service who will be listened
      */
