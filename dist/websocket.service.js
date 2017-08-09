@@ -67,8 +67,10 @@ let WebSocketService = class WebSocketService {
     checkAndInitializeSocket(socket) {
         if (this.authorizedSockets[socket.id]) {
             this.ws.newSocketHappen(socket, this.authorizedSockets[socket.id]);
+            socket.emit("you are authorized. socket is now open");
         }
         else if (this.acceptUnauthorizedConnections.value === "true") {
+            socket.emit("welcome, anonymous");
             this.ws.newSocketHappen(socket);
         }
         else {
