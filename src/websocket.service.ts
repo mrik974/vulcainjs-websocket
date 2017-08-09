@@ -15,7 +15,7 @@ export class WebSocketService {
 
     private io: SocketIO.Server;
     private tokenService: TokenService;
-    private tokenKey: IDynamicProperty<string>;
+    private acceptUnauthorizedConnexions: IDynamicProperty<boolean>;
 
     /**
      *
@@ -28,6 +28,7 @@ export class WebSocketService {
         this.io = new SocketIo(server);
 
         this.tokenService = tokenService;
+        this.acceptUnauthorizedConnexions = System.createServiceConfigurationProperty("WEBSOCKET_ACCEPT_UNAUTHORIZED_CONNECTIONS", true);
         // this.container.injectFrom(pathWs);
 
         this.initializeListener();
@@ -38,6 +39,11 @@ export class WebSocketService {
         this.io.on('connection', async (socket) => {
             // console.log('User connected');
             let tokenResolved: any = await this.getUserToken(socket);
+            if (!tokenResolved && !(this.acceptUnauthorizedConnexions.value)) {
+                // reject socket
+                socket.emit("You are not authorized to connect to this socket");
+                socket.disconnect(true);
+            }
             ws.newSocketHappen(socket, tokenResolved);
         });
     }
