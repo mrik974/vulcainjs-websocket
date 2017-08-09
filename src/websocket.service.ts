@@ -13,8 +13,7 @@ export class WebSocketService {
 
     private io: SocketIO.Server;
 
-    constructor(@Inject('TokenService') tokenService: TokenService) {
-        console.log(tokenService);
+    constructor(@Inject('TokenService') private tokenService: TokenService) {
     }
 
     /**
@@ -27,6 +26,7 @@ export class WebSocketService {
         this.container = container;
         this.io = new SocketIo(server);
         this.services = services;
+        console.log(this.tokenService);
 
         // this.container.injectFrom(pathWs);
 
