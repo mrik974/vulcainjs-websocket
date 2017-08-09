@@ -21,7 +21,7 @@ export class WebSocketComponent {
     newSocketHappen(socket: SocketIO.Socket, tokenResolved: any) {
         // Loop on all service to attach the new socket
         this.services.forEach((service: IWs) => {
-            service.newSocket(socket, tokenResolved);
+            service.onNewSocket(socket, tokenResolved);
             socket.on(service.onSetEventName(), (msg) => {
                 service.onCall(msg);
             });
