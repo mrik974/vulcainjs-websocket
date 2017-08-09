@@ -53,12 +53,13 @@ export class WebSocketService {
                 this.checkAndInitializeSocket(socket);
             });
             // 3) and tell socket
-            socket.emit(`You have ${this.timeToAuthorizeConnectionInMs} ms to send your token`);
+            socket.emit(`welcome. your socket id is ${socket.id}`);
+            socket.emit(`You have ${this.timeToAuthorizeConnectionInMs.value} ms to send your token`);
             if (!(this.acceptUnauthorizedConnections.value)) {
                 socket.emit(`socket will close if token not sent or invalid`);
             }
             else {
-                socket.emit(`socket will be active in ${this.timeToAuthorizeConnectionInMs} ms but your token won't be taken into account`);
+                socket.emit(`socket will be active in ${this.timeToAuthorizeConnectionInMs.value} ms but your token won't be taken into account`);
             }
         });
     }
