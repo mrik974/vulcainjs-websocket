@@ -35,7 +35,7 @@ let WebSocketService = class WebSocketService {
         this.container = container;
         this.io = new SocketIo(server);
         this.tokenService = this.container.get('TokenService');
-        this.acceptUnauthorizedConnections = vulcain_corejs_1.System.createServiceConfigurationProperty("WEBSOCKET_ACCEPT_UNAUTHORIZED_CONNECTIONS", true);
+        this.acceptUnauthorizedConnections = vulcain_corejs_1.System.createServiceConfigurationProperty("WEBSOCKET_ACCEPT_UNAUTHORIZED_CONNECTIONS", "true");
         this.timeToAuthorizeConnectionInMs = vulcain_corejs_1.System.createServiceConfigurationProperty("WEBSOCKET_TIME_TO_AUTHORIZE_CONNECTIONS", 1);
         // this.container.injectFrom(pathWs);
         this.ws = new websocket_component_1.WebSocketComponent(this.container, this.io, this.services);
@@ -56,7 +56,7 @@ let WebSocketService = class WebSocketService {
             // 3) and tell socket
             socket.emit(`welcome. your socket id is ${socket.id}`);
             socket.emit(`You have ${this.timeToAuthorizeConnectionInMs.value} ms to send your token`);
-            if (!(this.acceptUnauthorizedConnections.value)) {
+            if ((this.acceptUnauthorizedConnections.value === "false")) {
                 socket.emit(`socket will close if token not sent or invalid`);
             }
             else {
@@ -68,7 +68,7 @@ let WebSocketService = class WebSocketService {
         if (this.authorizedSockets[socket.id]) {
             this.ws.newSocketHappen(socket, this.authorizedSockets[socket.id]);
         }
-        else if (this.acceptUnauthorizedConnections.value) {
+        else if (this.acceptUnauthorizedConnections.value === "true") {
             this.ws.newSocketHappen(socket);
         }
         else {

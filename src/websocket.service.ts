@@ -16,7 +16,7 @@ export class WebSocketService {
 
     private io: SocketIO.Server;
     private tokenService: TokenService;
-    private acceptUnauthorizedConnections: IDynamicProperty<boolean>;
+    private acceptUnauthorizedConnections: IDynamicProperty<string>;
     private timeToAuthorizeConnectionInMs: IDynamicProperty<number>;
     private authorizedSockets: any = {};
     private ws: WebSocketComponent;
@@ -32,7 +32,7 @@ export class WebSocketService {
         this.io = new SocketIo(server);
 
         this.tokenService = this.container.get<TokenService>('TokenService');
-        this.acceptUnauthorizedConnections = System.createServiceConfigurationProperty("WEBSOCKET_ACCEPT_UNAUTHORIZED_CONNECTIONS", true);
+        this.acceptUnauthorizedConnections = System.createServiceConfigurationProperty("WEBSOCKET_ACCEPT_UNAUTHORIZED_CONNECTIONS", "true");
         this.timeToAuthorizeConnectionInMs = System.createServiceConfigurationProperty("WEBSOCKET_TIME_TO_AUTHORIZE_CONNECTIONS", 1);
         // this.container.injectFrom(pathWs);
         this.ws = new WebSocketComponent(this.container, this.io, this.services);
@@ -55,7 +55,7 @@ export class WebSocketService {
             // 3) and tell socket
             socket.emit(`welcome. your socket id is ${socket.id}`);
             socket.emit(`You have ${this.timeToAuthorizeConnectionInMs.value} ms to send your token`);
-            if (!(this.acceptUnauthorizedConnections.value)) {
+            if ((this.acceptUnauthorizedConnections.value === "false")) {
                 socket.emit(`socket will close if token not sent or invalid`);
             }
             else {
@@ -69,7 +69,7 @@ export class WebSocketService {
             this.ws.newSocketHappen(socket, this.authorizedSockets[socket.id]);
 
         }
-        else if (this.acceptUnauthorizedConnections.value) {
+        else if (this.acceptUnauthorizedConnections.value === "true") {
             this.ws.newSocketHappen(socket);
         }
         else {
