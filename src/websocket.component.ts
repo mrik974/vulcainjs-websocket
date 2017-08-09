@@ -18,10 +18,10 @@ export class WebSocketComponent {
      *
      * @param socket
      */
-    newSocketHappen(socket: SocketIO.Socket, tokenResolved: any) {
+    newSocketHappen(socket: SocketIO.Socket, user?: any) {
         // Loop on all service to attach the new socket
         this.services.forEach((service: IWs) => {
-            service.onNewSocket(socket, tokenResolved);
+            service.onNewSocket(socket, user);
             socket.on(service.onSetEventName(), (msg) => {
                 service.onCall(msg);
             });

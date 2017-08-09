@@ -5,6 +5,7 @@ import {WebSocketComponent} from "./websocket.component";
 import {TokenService} from "vulcain-corejs/dist/defaults/services/tokenService";
 import {IWs} from "./wsAdapter";
 import Socket = SocketIO.Socket;
+import {Observable} from "rxjs";
 
 const SocketIo = require('socket.io');
 
@@ -15,7 +16,10 @@ export class WebSocketService {
 
     private io: SocketIO.Server;
     private tokenService: TokenService;
-    private acceptUnauthorizedConnexions: IDynamicProperty<boolean>;
+    private acceptUnauthorizedConnections: IDynamicProperty<boolean>;
+    private timeToAuthorizeConnectionInMs: IDynamicProperty<number>;
+    private authorizedSockets: any = {};
+    private ws: WebSocketComponent;
 
     /**
      *
@@ -28,24 +32,51 @@ export class WebSocketService {
         this.io = new SocketIo(server);
 
         this.tokenService = tokenService;
-        this.acceptUnauthorizedConnexions = System.createServiceConfigurationProperty("WEBSOCKET_ACCEPT_UNAUTHORIZED_CONNECTIONS", true);
+        this.acceptUnauthorizedConnections = System.createServiceConfigurationProperty("WEBSOCKET_ACCEPT_UNAUTHORIZED_CONNECTIONS", true);
+        this.timeToAuthorizeConnectionInMs = System.createServiceConfigurationProperty("WEBSOCKET_TIME_TO_AUTHORIZE_CONNECTIONS", 1);
         // this.container.injectFrom(pathWs);
-
+        this.ws = new WebSocketComponent(this.container, this.io, this.services);
         this.initializeListener();
     }
 
     private initializeListener() {
-        let ws = new WebSocketComponent(this.container, this.io, this.services);
+
         this.io.on('connection', async (socket) => {
-            // console.log('User connected');
-            let tokenResolved: any = await this.getUserToken(socket);
-            if (!tokenResolved && !(this.acceptUnauthorizedConnexions.value)) {
-                // reject socket
-                socket.emit("You are not authorized to connect to this socket");
-                socket.disconnect(true);
+            // 1) Instantiate a listener for token
+            socket.on('message', async (message) => {
+                if (message.startsWith('Bearer ')) {
+                    await this.getUserToken(socket, message.slice(7));
+                }
+            });
+            // 2) start timer
+            Observable.timer(this.timeToAuthorizeConnectionInMs.value).subscribe(() => {
+                this.checkAndInitializeSocket(socket);
+            });
+            // 3) and tell socket
+            socket.emit(`You have ${this.timeToAuthorizeConnectionInMs} ms to send your token`);
+            if (!(this.acceptUnauthorizedConnections.value)) {
+                socket.emit(`socket will close if token not sent or invalid`);
             }
-            ws.newSocketHappen(socket, tokenResolved);
+            else {
+                socket.emit(`socket will be active in ${this.timeToAuthorizeConnectionInMs} ms but your token won't be taken into account`);
+            }
         });
+    }
+
+    private checkAndInitializeSocket(socket: Socket) {
+        if (this.authorizedSockets[socket.id]) {
+            this.ws.newSocketHappen(socket, this.authorizedSockets[socket.id]);
+
+        }
+        else if (this.acceptUnauthorizedConnections.value) {
+            this.ws.newSocketHappen(socket);
+        }
+        else {
+            socket.emit('Time has expired, socket will close.');
+            socket.disconnect(true);
+        }
+        // whatever happens, remove socket id from list, we don't need to keep it for long
+        this.authorizedSockets[socket.id] = null;
     }
 
     private initializeServices(services: string[]) {
@@ -56,24 +87,18 @@ export class WebSocketService {
         });
     }
 
-    private async getUserToken(socket: Socket): Promise<any> {
+    private async getUserToken(socket: Socket, message: string) {
         // get tokenservice or return null
         if (!this.tokenService) {
-            return null;
+            return;
         }
         try {
-            // get authorization header or return null
-            const authorizationHeader = socket.handshake.headers['Authorization'];
-            if (!authorizationHeader && (!authorizationHeader.startsWith("Bearer "))) {
-                return null;
-            }
-            let token: string = authorizationHeader.slice(7); // Removing "Bearer "
             // resolve token or return null
-            return await this.tokenService.verifyTokenAsync({token: token, tenant: ""});
+            let user: any = await this.tokenService.verifyTokenAsync({token: message, tenant: ""});
+            this.authorizedSockets[socket.id] = user;
         }
         catch (error) {
-            return null;
+            return;
         }
-
     }
 }
