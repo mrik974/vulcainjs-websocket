@@ -58,7 +58,7 @@ export class WebSocketService {
             // Do nothing, socket is open already
         }
         else if (this.acceptUnauthorizedConnections.value === "true") {
-            socket.emit("anonymous_socket_authorized");
+            socket.emit("authorized", {user: 'anonymous'});
             this.ws.newSocketHappen(socket);
         }
         else {
@@ -111,10 +111,10 @@ export class WebSocketService {
         // 3) and tell socket
         socket.emit(`authorize`, {timeToAuthorize: this.timeToAuthorizeConnectionInMs.value});
         if ((this.acceptUnauthorizedConnections.value === "false")) {
-            socket.emit(`unauthorized_connections_not_accepted`);
+            socket.emit(`unauthorized_connections`, {accepted: false});
         }
         else {
-            socket.emit(`unauthorized_connections_accepted`);
+            socket.emit(`unauthorized_connections`, {accepted: true});
         }
     }
 }
