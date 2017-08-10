@@ -98,7 +98,7 @@ export class WebSocketService {
         // 1) Instantiate a listener for token
         socket.on('authorize', async (message) => {
             if (message.token && message.token.startsWith("Bearer ")) {
-                await this.getUserToken(socket, message.token.split("")[1]); // Removing the "Bearer " part
+                await this.getUserToken(socket, message.token.split(" ")[1]); // Removing the "Bearer " part
             }
             else {
                 socket.emit('invalid_token');
