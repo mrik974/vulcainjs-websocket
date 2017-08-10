@@ -2,7 +2,7 @@ export interface IWs {
 
     init(io: SocketIO.Server): void;
 
-    onNewSocket(socket: SocketIO.Socket, tokenResolved?: any): void;
+    onNewSocket(socket: SocketIO.Socket, user?: any): void;
 
     /**
      *

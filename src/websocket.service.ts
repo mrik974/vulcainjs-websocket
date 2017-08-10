@@ -19,6 +19,7 @@ export class WebSocketService {
     private acceptUnauthorizedConnections: IDynamicProperty<string>;
     private timeToAuthorizeConnectionInMs: IDynamicProperty<number>;
     private authorizedSockets: any = {};
+    private securityDisabled: IDynamicProperty<string>;
     private ws: WebSocketComponent;
 
     /**
@@ -34,6 +35,7 @@ export class WebSocketService {
         this.tokenService = this.container.get<TokenService>('TokenService');
         this.acceptUnauthorizedConnections = System.createServiceConfigurationProperty("WEBSOCKET_ACCEPT_UNAUTHORIZED_CONNECTIONS", "true");
         this.timeToAuthorizeConnectionInMs = System.createServiceConfigurationProperty("WEBSOCKET_TIME_TO_AUTHORIZE_CONNECTIONS", 1);
+        this.securityDisabled = System.createServiceConfigurationProperty("WEBSOCKET_DISABLE_SECURITY", "false");
         // this.container.injectFrom(pathWs);
         this.ws = new WebSocketComponent(this.container, this.io, this.services);
         this.initializeListener();
@@ -41,7 +43,12 @@ export class WebSocketService {
 
     private initializeListener() {
         this.io.on('connection', async (socket) => {
-            this.startSocketAuthentication(socket);
+            if (this.securityDisabled.value === "true") {
+                this.ws.newSocketHappen(socket);
+            }
+            else {
+                this.startSocketAuthentication(socket);
+            }
         });
     }
 
@@ -69,14 +76,14 @@ export class WebSocketService {
         });
     }
 
-    private async getUserToken(socket: Socket, message: string) {
+    private async getUserToken(socket: Socket, token: string) {
         // get tokenservice or return null
         if (!this.tokenService) {
             return;
         }
         try {
             // resolve token or return null
-            let user: any = await this.tokenService.verifyTokenAsync({token: message, tenant: ""});
+            let user: any = await this.tokenService.verifyTokenAsync({token: token, tenant: ""});
             this.authorizedSockets[socket.id] = user;
             this.ws.newSocketHappen(socket, this.authorizedSockets[socket.id]);
             socket.emit("authorized", user);
@@ -90,8 +97,11 @@ export class WebSocketService {
     private startSocketAuthentication(socket: SocketIO.Socket) {
         // 1) Instantiate a listener for token
         socket.on('authorize', async (message) => {
-            if (message.token) {
-                await this.getUserToken(socket, message.token);
+            if (message.token && message.token.startsWith("Bearer ")) {
+                await this.getUserToken(socket, message.token.split("")[1]); // Removing the "Bearer " part
+            }
+            else {
+                socket.emit('invalid_token');
             }
         });
         // 2) start timer
