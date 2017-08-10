@@ -58,7 +58,7 @@ let WebSocketService = class WebSocketService {
             // Do nothing, socket is open already
         }
         else if (this.acceptUnauthorizedConnections.value === "true") {
-            socket.emit("anonymous_socket_authorized");
+            socket.emit("authorized", { user: 'anonymous' });
             this.ws.newSocketHappen(socket);
         }
         else {
@@ -97,7 +97,7 @@ let WebSocketService = class WebSocketService {
         // 1) Instantiate a listener for token
         socket.on('authorize', (message) => __awaiter(this, void 0, void 0, function* () {
             if (message.token && message.token.startsWith("Bearer ")) {
-                yield this.getUserToken(socket, message.token.split("")[1]); // Removing the "Bearer " part
+                yield this.getUserToken(socket, message.token.split(" ")[1]); // Removing the "Bearer " part
             }
             else {
                 socket.emit('invalid_token');
@@ -110,10 +110,10 @@ let WebSocketService = class WebSocketService {
         // 3) and tell socket
         socket.emit(`authorize`, { timeToAuthorize: this.timeToAuthorizeConnectionInMs.value });
         if ((this.acceptUnauthorizedConnections.value === "false")) {
-            socket.emit(`unauthorized_connections_not_accepted`);
+            socket.emit(`unauthorized_connections`, { accepted: false });
         }
         else {
-            socket.emit(`unauthorized_connections_accepted`);
+            socket.emit(`unauthorized_connections`, { accepted: true });
         }
     }
 };
