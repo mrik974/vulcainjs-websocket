@@ -7,6 +7,7 @@ export declare class WebSocketService {
     private acceptUnauthorizedConnections;
     private timeToAuthorizeConnectionInMs;
     private authorizedSockets;
+    private securityDisabled;
     private ws;
     /**
      *
@@ -18,6 +19,6 @@ export declare class WebSocketService {
     private initializeListener();
     private checkAndInitializeSocket(socket);
     private initializeServices(services);
-    private getUserToken(socket, message);
+    private getUserToken(socket, token);
     private startSocketAuthentication(socket);
 }

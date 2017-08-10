@@ -37,13 +37,19 @@ let WebSocketService = class WebSocketService {
         this.tokenService = this.container.get('TokenService');
         this.acceptUnauthorizedConnections = vulcain_corejs_1.System.createServiceConfigurationProperty("WEBSOCKET_ACCEPT_UNAUTHORIZED_CONNECTIONS", "true");
         this.timeToAuthorizeConnectionInMs = vulcain_corejs_1.System.createServiceConfigurationProperty("WEBSOCKET_TIME_TO_AUTHORIZE_CONNECTIONS", 1);
+        this.securityDisabled = vulcain_corejs_1.System.createServiceConfigurationProperty("WEBSOCKET_DISABLE_SECURITY", "false");
         // this.container.injectFrom(pathWs);
         this.ws = new websocket_component_1.WebSocketComponent(this.container, this.io, this.services);
         this.initializeListener();
     }
     initializeListener() {
         this.io.on('connection', (socket) => __awaiter(this, void 0, void 0, function* () {
-            this.startSocketAuthentication(socket);
+            if (this.securityDisabled.value === "true") {
+                this.ws.newSocketHappen(socket);
+            }
+            else {
+                this.startSocketAuthentication(socket);
+            }
         }));
     }
     checkAndInitializeSocket(socket) {
@@ -68,7 +74,7 @@ let WebSocketService = class WebSocketService {
             this.services.push(service);
         });
     }
-    getUserToken(socket, message) {
+    getUserToken(socket, token) {
         return __awaiter(this, void 0, void 0, function* () {
             // get tokenservice or return null
             if (!this.tokenService) {
@@ -76,7 +82,7 @@ let WebSocketService = class WebSocketService {
             }
             try {
                 // resolve token or return null
-                let user = yield this.tokenService.verifyTokenAsync({ token: message, tenant: "" });
+                let user = yield this.tokenService.verifyTokenAsync({ token: token, tenant: "" });
                 this.authorizedSockets[socket.id] = user;
                 this.ws.newSocketHappen(socket, this.authorizedSockets[socket.id]);
                 socket.emit("authorized", user);
@@ -90,8 +96,11 @@ let WebSocketService = class WebSocketService {
     startSocketAuthentication(socket) {
         // 1) Instantiate a listener for token
         socket.on('authorize', (message) => __awaiter(this, void 0, void 0, function* () {
-            if (message.token) {
-                yield this.getUserToken(socket, message.token);
+            if (message.token && message.token.startsWith("Bearer ")) {
+                yield this.getUserToken(socket, message.token.split("")[1]); // Removing the "Bearer " part
+            }
+            else {
+                socket.emit('invalid_token');
             }
         }));
         // 2) start timer

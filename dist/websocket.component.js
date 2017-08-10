@@ -25,6 +25,7 @@ class WebSocketComponent {
                 service.onCall(msg);
             });
         });
+        socket.emit('ready');
     }
     initialize() {
     }
