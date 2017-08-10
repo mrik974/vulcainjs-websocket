@@ -43,38 +43,19 @@ let WebSocketService = class WebSocketService {
     }
     initializeListener() {
         this.io.on('connection', (socket) => __awaiter(this, void 0, void 0, function* () {
-            // 1) Instantiate a listener for token
-            socket.on('message', (message) => __awaiter(this, void 0, void 0, function* () {
-                if (message.startsWith('Bearer ')) {
-                    yield this.getUserToken(socket, message.slice(7));
-                }
-            }));
-            // 2) start timer
-            rxjs_1.Observable.timer(this.timeToAuthorizeConnectionInMs.value).subscribe(() => {
-                this.checkAndInitializeSocket(socket);
-            });
-            // 3) and tell socket
-            socket.emit(`welcome. your socket id is ${socket.id}`);
-            socket.emit(`You have ${this.timeToAuthorizeConnectionInMs.value} ms to send your token`);
-            if ((this.acceptUnauthorizedConnections.value === "false")) {
-                socket.emit(`socket will close if token not sent or invalid`);
-            }
-            else {
-                socket.emit(`socket will be active in ${this.timeToAuthorizeConnectionInMs.value} ms but your token won't be taken into account`);
-            }
+            this.startSocketAuthentication(socket);
         }));
     }
     checkAndInitializeSocket(socket) {
+        socket.emit('time_to_authorize_expired');
         if (this.authorizedSockets[socket.id]) {
-            this.ws.newSocketHappen(socket, this.authorizedSockets[socket.id]);
-            socket.emit("you are authorized. socket is now open");
+            // Do nothing, socket is open already
         }
         else if (this.acceptUnauthorizedConnections.value === "true") {
-            socket.emit("welcome, anonymous");
+            socket.emit("anonymous_socket_authorized");
             this.ws.newSocketHappen(socket);
         }
         else {
-            socket.emit('Time has expired, socket will close.');
             socket.disconnect(true);
         }
         // whatever happens, remove socket id from list, we don't need to keep it for long
@@ -97,11 +78,34 @@ let WebSocketService = class WebSocketService {
                 // resolve token or return null
                 let user = yield this.tokenService.verifyTokenAsync({ token: message, tenant: "" });
                 this.authorizedSockets[socket.id] = user;
+                this.ws.newSocketHappen(socket, this.authorizedSockets[socket.id]);
+                socket.emit("authorized", user);
             }
             catch (error) {
+                socket.emit('invalid_token');
                 return;
             }
         });
+    }
+    startSocketAuthentication(socket) {
+        // 1) Instantiate a listener for token
+        socket.on('authorize', (message) => __awaiter(this, void 0, void 0, function* () {
+            if (message.token) {
+                yield this.getUserToken(socket, message.token);
+            }
+        }));
+        // 2) start timer
+        rxjs_1.Observable.timer(this.timeToAuthorizeConnectionInMs.value).subscribe(() => {
+            this.checkAndInitializeSocket(socket);
+        });
+        // 3) and tell socket
+        socket.emit(`authorize`, { timeToAuthorize: this.timeToAuthorizeConnectionInMs.value });
+        if ((this.acceptUnauthorizedConnections.value === "false")) {
+            socket.emit(`unauthorized_connections_not_accepted`);
+        }
+        else {
+            socket.emit(`unauthorized_connections_accepted`);
+        }
     }
 };
 WebSocketService = __decorate([

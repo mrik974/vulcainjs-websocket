@@ -19,4 +19,5 @@ export declare class WebSocketService {
     private checkAndInitializeSocket(socket);
     private initializeServices(services);
     private getUserToken(socket, message);
+    private startSocketAuthentication(socket);
 }
